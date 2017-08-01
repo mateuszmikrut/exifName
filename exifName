@@ -21,6 +21,26 @@ function getDateFromMOV(){
 	roz=`echo ${1##*.} | tr A-Z a-z`
 }
 
+function copyOrMove(){
+	if [ $save == 0 ]; then
+		mv --backup=t -v $1 $data\ $godzina$counter.$roz
+	else
+		cp --backup=t -vp $1 $data\ $godzina$counter.$roz
+	fi
+}
+
+function checkDiff(){
+	for i in ${EXISTINGARRAY[*]}; do
+		diff $1 $i &> /dev/null
+		if [ $? -eq 0 ]; then
+			echo "$1 aready exist"
+			#rm $1
+			return 1
+		fi
+	done
+	return 0
+}
+
 function changeName(){
 	# Ignoruj spacje w argumencie	
 	SAVEIFS=$IFS
@@ -40,11 +60,30 @@ function changeName(){
 		echo "Probably specified file ($1) has no EXIF data available. Exiting ..."
 		return 2
 	else
-		if [ $save == 0 ]; then
-			mv --backup=t -v $1 $data\ $godzina.$roz
-		else
-			cp --backup=t -vp $1 $data\ $godzina.$roz
-		fi
+		EXISTINGARRAY=(`ls $data\ $godzina* 2> /dev/null`)
+		#echo ${EXISTINGARRAY[*]}
+		counter=${#EXISTINGARRAY[*]}
+		case $counter in
+			0)
+				counter=""
+				copyOrMove $1
+				#echo "0 - kopiuje $1 ---> $data\ $godzina$counter.$roz"
+			;;
+			1)
+				checkDiff $1 || return 3
+				mv --backup=t $data\ $godzina.$roz $data\ $godzina-0.$roz
+				counter="-$counter"
+				#echo "1 - kopiuje $1 ---> $data\ $godzina$counter.$roz"				
+				copyOrMove $1
+				
+			;;
+			*)
+				checkDiff $1 || return 3
+				counter="-$counter"
+				#echo "2+ - kopiuje $1 ---> $data\ $godzina$counter.$roz"				
+				copyOrMove $1
+			;;
+		esac
 	fi
 	# Przywróć stary IFS
 	IFS=$SAVEIFS
@@ -81,6 +120,7 @@ case $1 in
 	*)
 		save=0
 		main "$@"
+		#echo $?
 	;;
 esac
 
