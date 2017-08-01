@@ -15,9 +15,9 @@ function getDateFromIMG(){
 }
 
 function getDateFromMOV(){
-	local fulldate=`mplayer -really-quiet -identify -frames 0 -vo null -nosound -nolirc $1 | grep ID_CLIP_INFO_VALUE3 | cut -d '=' -f 2`
-	data=`echo $fulldate | awk '{print $1}'` 
-	godzina=`echo $fulldate | awk '{print $2}' | tr ':' '.'`
+	local fulldate=`mplayer -really-quiet -identify -frames 0 -vo null -nosound -nolirc $1 | grep -A 1 creation_time | tail -1 | cut -d '=' -f 2`
+	data=`echo $fulldate | cut -d "T" -f 1` 
+	godzina=`echo $fulldate | cut -d "T" -f 2 | cut -d '.' -f 1 |  tr ':' '.'`
 	roz=`echo ${1##*.} | tr A-Z a-z`
 }
 
